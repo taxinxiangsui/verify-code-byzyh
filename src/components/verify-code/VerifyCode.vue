@@ -39,21 +39,27 @@ onMounted(() => {
     initGlobalProperty()
     initCanvas()
 })
-const dragSlide = (target:Ref)=> {
+const dragSlide = (target:Ref,remove?:boolean)=> {
     if(target){
         const targetVal = target.value
         const maxMove = width - targetVal.offsetWidth - 2
         const canvasBlock = document.querySelector('.canvas-block') as HTMLCanvasElement
         const blockWdith = canvasBlock.offsetWidth
         let originalX = 0
-        targetVal.addEventListener('mousedown',(e:any)=>{
+        targetVal.addEventListener('mousedown',handleDown)
+        if(remove){
+            targetVal.removeEventListener('mousedown',handleDown)
+        }
+        function handleDown(e:any) {
             isMouseDown.value = true
             originalX = e.pageX
             document.documentElement.addEventListener('mousemove',handleMove)
-        })
-        document.documentElement.addEventListener('mouseup',()=>{
+            document.documentElement.addEventListener('mouseup',handleUp)
+        }
+        function handleUp(e:any) {
             checkVerifyCode()
             document.documentElement.removeEventListener('mousemove',handleMove)
+            document.documentElement.removeEventListener('mouseup',handleUp)
             setTimeout(() => {
                 if(status.value === 1){
                     emits('ok')
@@ -62,8 +68,7 @@ const dragSlide = (target:Ref)=> {
                 }
                 reFresh()
             }, 1000)
-        })
-        
+        }
         function handleMove(e:any){
             const moveX = e.pageX - originalX
             if(moveX <= maxMove && moveX >= 0){
@@ -133,8 +138,8 @@ const initCanvas = ()=> {
             img.onload = ()=> {
                 resetCanvas(canvasBg)
                 resetCanvas(canvasBlock)
-                const picX = Math.floor(Math.random() * (width / 2 - 40) + width / 2)
-                const picY = Math.floor(Math.random() * (width / 2 - 30))
+                const picX = Math.floor(Math.random() * (width / 2 - 80) + width / 2)
+                const picY = Math.floor(Math.random() * (width / 2 - 70))
                 targetBlockX.value = picX
                 ctx.drawImage(img,0,0,width,width/2)
                 draw(ctx,picX,picY)
@@ -156,6 +161,8 @@ const initCanvas = ()=> {
             }
         })
         .catch((err:string)=>{
+            isRegisterDrag.value = false
+            dragSlide(slide,true)
             ctx.font = 'bold 30px serif'
             ctx.fillText(err,0,100)
         })
@@ -206,6 +213,9 @@ const initCanvas = ()=> {
             <p class="sliding-tip" :style="{opacity:isMouseDown?.5:1}">{{tip}}</p>
             <div class="sliding-move" :style="{width:slidingWidth}"></div>
         </div>
+        <svg class="refresh" version="1.1" width="20" height="20" @click="reFresh">
+            <path d="m10.01859,3.54213c0.73,0.00088 1.42739,0.12091 2.08785,0.32143l-0.5227,0.8585l3.71035,0l-0.92782,-1.52593l-0.92712,-1.52547l-0.48804,0.80383c-0.91467,-0.31756 -1.90071,-0.49529 -2.93184,-0.49529c-4.74622,0 -8.59318,3.65344 -8.59318,8.1606c0,1.87062 0.66997,3.58931 1.78494,4.96633l1.30664,-0.95271c-0.90176,-1.11282 -1.44395,-2.50147 -1.44689,-4.01318c0.00657,-3.64398 3.11106,-6.59254 6.94782,-6.59812l0,0zm6.80915,1.63306l-1.30663,0.95316c0.90153,1.1124 1.44372,2.50017 1.4462,4.01233c-0.00657,3.64395 -3.11106,6.59208 -6.94805,6.59809c-0.67994,-0.00083 -1.33043,-0.10583 -1.95055,-0.28141l0.49188,-0.80772l-3.71033,0l0.92714,1.52508l0.92781,1.52719l0.51727,-0.85245c0.87728,0.29002 1.81619,0.45182 2.79679,0.45224c4.7469,-0.00084 8.5932,-3.65428 8.59432,-8.16145c-0.00112,-1.87062 -0.67156,-3.58889 -1.78584,-4.96506l0,0z" stroke-width="0.1" stroke="#ffffff" fill="#cccccc"/>
+        </svg>
     </div>
 </template>
 <style scoped>
@@ -294,6 +304,14 @@ const initCanvas = ()=> {
     }
     .slide:active:before{
         content: none;
+    }
+    .refresh{
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .refresh:hover{
+        cursor: pointer;
     }
     @keyframes light-move {
         100%{
